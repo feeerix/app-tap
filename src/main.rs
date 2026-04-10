@@ -1,18 +1,7 @@
 /*****************************************************************************
- *   Ledger App Boilerplate Rust.
- *   (c) 2023 Ledger SAS.
+ *   Ledger App Tap.
+ *   Felix Voo & Rammy Kim.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
  *****************************************************************************/
 
 #![no_std]
@@ -25,6 +14,8 @@ mod app_ui {
     pub mod sign;
 }
 mod handlers {
+    pub mod debug_ping;
+    pub mod echo;
     pub mod get_public_key;
     pub mod get_version;
     pub mod sign_tx;
@@ -35,6 +26,8 @@ mod swap;
 
 use app_ui::menu::ui_menu_main;
 use handlers::{
+    debug_ping::handler_debug_ping,
+    echo::handler_echo,
     get_public_key::handler_get_public_key,
     get_version::handler_get_version,
     sign_tx::{handler_sign_tx, TxContext},
@@ -101,6 +94,10 @@ pub enum Instruction {
     GetAppName,
     GetPubkey { display: bool },
     SignTx { chunk: u8, more: bool },
+    /// `INS=0x10`, `P1=P2=0`: echo command data for link testing (NFC/USB).
+    Echo,
+    /// `INS=0x11`, `P1=P2=0`: deterministic fixed response to validate app APDU path.
+    DebugPing,
 }
 
 impl TryFrom<ApduHeader> for Instruction {
@@ -131,7 +128,11 @@ impl TryFrom<ApduHeader> for Instruction {
                     more: value.p2 == P2_SIGN_TX_MORE,
                 })
             }
+            (0x10, 0, 0) => Ok(Instruction::Echo),
+            (0x11, 0, 0) => Ok(Instruction::DebugPing),
             (3..=6, _, _) => Err(AppSW::WrongP1P2),
+            (0x10, _, _) => Err(AppSW::WrongP1P2),
+            (0x11, _, _) => Err(AppSW::WrongP1P2),
             (_, _, _) => Err(AppSW::InsNotSupported),
         }
     }
@@ -245,11 +246,12 @@ fn handle_apdu<'a>(
     match ins {
         Instruction::GetAppName => {
             let mut response = command.into_response();
-            response.append(env!("CARGO_PKG_NAME").as_bytes())?;
-            Ok(response)
+            response.append(env!("CARGO_PKG_NAME").as_bytes())?; Ok(response)
         }
         Instruction::GetVersion => handler_get_version(command),
         Instruction::GetPubkey { display } => handler_get_public_key(command, *display),
         Instruction::SignTx { chunk, more } => handler_sign_tx(command, *chunk, *more, ctx),
+        Instruction::Echo => handler_echo(command),
+        Instruction::DebugPing => handler_debug_ping(command),
     }
 }

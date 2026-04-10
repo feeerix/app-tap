@@ -33,8 +33,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
 
 [[package]]
-name = "app-boilerplate-rust"
-version = "1.8.0"
+name = "app-tap"
+version = "0.0.0"
 dependencies = [
  "arrayvec",
  "hex",
@@ -549,8 +549,6 @@ checksum = "03087c2bad5e1034e8cace5926dec053fb3790248370865f5117a7d0213354c8"
 [[package]]
 name = "ledger_device_sdk"
 version = "1.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8adde0c75d115974c33db5e8e50dbf809d874d64ea970570cd6cc523ce009d6b"
 dependencies = [
  "const-zero",
  "include_gif",
